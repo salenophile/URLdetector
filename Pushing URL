@@ -1,0 +1,78 @@
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.*;
+
+public class PhishingURLDetector {
+
+    static Set<String> blacklist = new HashSet<>(Arrays.asList(
+            "phishing.com",
+            "malicious.net",
+            "fakebank.org"
+    ));
+
+    public static boolean hasIPAddress(String url) {
+        return url.matches(".*\\d+\\.\\d+\\.\\d+\\.\\d+.*");
+    }
+
+    public static boolean hasSuspiciousWords(String url) {
+        String[] keywords = {"login", "verify", "update", "bank", "secure"};
+        for (String word : keywords) {
+            if (url.toLowerCase().contains(word)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static String getDomain(String url) {
+        try {
+            URI uri = new URI(url);
+            return uri.getHost();
+        } catch (URISyntaxException e) {
+            return "";
+        }
+    }
+
+    public static Result checkURL(String url) {
+        int score = 0;
+        String domain = getDomain(url);
+
+        if (url.contains("@")) score += 2;
+        if (url.length() > 75) score += 2;
+        if (hasIPAddress(url)) score += 3;
+        if (hasSuspiciousWords(url)) score += 2;
+        if (domain != null && domain.split("\\.").length > 3) score += 1;
+
+        if (domain != null && blacklist.contains(domain)) score += 5;
+
+        String result;
+        if (score >= 7) result = "Phishing";
+        else if (score >= 4) result = "Suspicious";
+        else result = "Safe";
+
+        return new Result(score, result);
+    }
+
+    static class Result {
+        int score;
+        String label;
+
+        Result(int score, String label) {
+            this.score = score;
+            this.label = label;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter a URL: ");
+        String url = scanner.nextLine();
+
+        Result result = checkURL(url);
+
+        System.out.println("\nResult:");
+        System.out.println("Risk Score: " + result.score);
+        System.out.println("Status: " + result.label);
+    }
+}
